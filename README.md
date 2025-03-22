@@ -1,5 +1,5 @@
-(+) First I created the code
-(```)
+1. First I created the code
+```
 #include <WiFi.h>
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
@@ -113,6 +113,8 @@ BLEScanResults foundDevices = pBLEScan->start(10, false);
   delay(10000);
 
 
-}(```)
-(+) Then I needed to upload into the esp32-c3, but the sketch was too big, the board couldn't handle it. 
-(+) Step 3: optimize the code and upload. Changing the flash size did nothing :( .
+}
+```
+
+2. Then I needed to upload into the esp32-c3, but the sketch was too big, the board couldn't handle it. 
+3. Optimize the code and upload. Changing the flash size did nothing :( .
