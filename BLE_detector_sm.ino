@@ -5,110 +5,102 @@
 #include <BLEScan.h>              // contains BLE scanning functions
 #include <BLEAdvertisedDevice.h>  // contains BLE device characteristic data
 
-int8_t scanTime = 30; //In seconds
+int8_t scanTime = 2; //In seconds
 
-  //Server address
-const char * serverUrl = "http://serverIP:serverPORT";
+// Server address
+const char * serverUrl = "http://your-server-address:server-port";  // Change this to your server address
 
 // WiFi credentials
-const char* ssid = ""; // WiFi network name
-const char* password = "";     // WiFi password
-   
+const char* ssid = "SSID";       // Replace with your WiFi network name
+const char* password = "WifiPass"; // Replace with your WiFi password
+
 BLEScan* pBLEScan;
 
-class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks 
-
-{
-
-    void onResult(BLEAdvertisedDevice advertisedDevice) 
-
-    {
-
+class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
+  void onResult(BLEAdvertisedDevice advertisedDevice) {
       String strName;
       strName = advertisedDevice.getName().c_str();
-      if ( strName.length() > 0 )
-
-      {
-        Serial.printf("Name: %s n", advertisedDevice.getName().c_str());
-        Serial.printf("Advertised Device: %s n", advertisedDevice.toString().c_str());
+      if ( strName.length() > 0 ) {
+          Serial.printf("Name: %s n", advertisedDevice.getName().c_str());
+          Serial.printf("Advertised Device: %s n", advertisedDevice.toString().c_str());
       }
-
-    }
-
+  }
 };
 
 void sendToServer(String jsonData){
-    if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("WiFi not connected, skipping HTTP request...");
-        return;
-    }
-
-    HTTPClient http;
-    http.begin(serverUrl);
-    http.addHeader("Content-Type", "application/json");
-
-    int8_t httpResponseCode = http.POST(jsonData);
-
-    if (httpResponseCode > 0) {
-        Serial.print("Server response: ");
-        Serial.println(httpResponseCode);
-        String response = http.getString();
-        Serial.println(response);
-    } else {
-        Serial.print("Error sending data: ");
-        Serial.println(httpResponseCode);
-    }
-
-    http.end();
+  HTTPClient http;
+  delay(1000);
+  http.begin(serverUrl);   // Begin HTTP request
+  
+  delay(100);
+  http.addHeader("Content-Type", "application/json");
+  delay(100);
+  
+  int8_t httpResponseCode = http.POST(jsonData);
+  
+  if (httpResponseCode > 0) {
+      Serial.print("Server response: ");
+      Serial.println(httpResponseCode);
+      String response = http.getString();
+      Serial.println(response);
+  } else {
+      Serial.print("Error sending data: ");
+      Serial.println(httpResponseCode);
+  }
+  
+  http.end();
 }
 
 void setup() {
   delay(100);
   Serial.begin(115200);
-  delay(100);
-  //connect to server via wifi
-  WiFi.begin(ssid, password);
-  
-    //Serial.println("WiFi connected");
-    Serial.println(WiFi.localIP());
+  delay(1000);
 
-    delay(500);
-    
-    //start BLE
+  // Connect to Wi-Fi
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+      delay(1000);
+      Serial.print(".");
+  }
+  Serial.println("Connected to Wi-Fi!");
+  Serial.print("IP Address: ");
+  Serial.println(WiFi.localIP());
+  Serial.println("WiFi connected");
+
+  delay(5000);
+
+  // Start BLE scanning
   Serial.println("Scanning...");
   BLEDevice::init("");
-  pBLEScan = BLEDevice::getScan(); //create new scan
+  pBLEScan = BLEDevice::getScan(); // Create new scan
   pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
-  pBLEScan->setActiveScan(true); //active scan uses more power, but get results faster
+  pBLEScan->setActiveScan(true); // Active scan uses more power, but gets results faster
   pBLEScan->setInterval(50);
-  pBLEScan->setWindow(49);  // less or equal setInterval value
-
+  pBLEScan->setWindow(49);  // Less or equal to setInterval value
 }
 
 void loop() {
   delay(200);
   
-  // BLE
-BLEScanResults foundDevices = *pBLEScan->start(10, false);
+  // Perform BLE scan
+  BLEScanResults foundDevices = *pBLEScan->start(10, false);
 
-    StaticJsonDocument<128> jsonDoc;
-    JsonArray devicesArray = jsonDoc.createNestedArray("devices");
+  StaticJsonDocument<128> jsonDoc;
+  JsonArray devicesArray = jsonDoc.createNestedArray("devices");
 
-    for (int8_t i = 0; i < foundDevices.getCount(); i++) {
-        BLEAdvertisedDevice device = foundDevices.getDevice(i);
-        JsonObject deviceObj = devicesArray.createNestedObject();
-        deviceObj["mac"] = device.getAddress().toString().c_str();
-        deviceObj["rssi"] = device.getRSSI();
-    }
+  for (int8_t i = 0; i < foundDevices.getCount(); i++) {
+      BLEAdvertisedDevice device = foundDevices.getDevice(i);
+      JsonObject deviceObj = devicesArray.createNestedObject();
+      deviceObj["mac"] = device.getAddress().toString().c_str();
+      deviceObj["rssi"] = device.getRSSI();
+  }
 
-    String jsonString;
-    serializeJson(jsonDoc, jsonString);
-   Serial.println("JSON Payload:");
-   Serial.println(jsonString);
+  String jsonString;
+  serializeJson(jsonDoc, jsonString);
+  Serial.println("JSON Payload:");
+  Serial.println(jsonString);
 
   sendToServer(jsonString);
-  pBLEScan->clearResults();   // delete results fromBLEScan buffer to release memory
-  delay(10000);
-
-
+  pBLEScan->clearResults();   // Delete results from BLEScan buffer to release memory
+  delay(2500);
 }
